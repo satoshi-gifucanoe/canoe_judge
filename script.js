@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentInputCellIndex = 2; 
     const NUM_ARRAYS_TO_DISPLAY = 3;
 
+/*
     // --- 音声設定 ---
     const sounds = {
         0: new Audio('sound_0.mp3'),
@@ -39,6 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
             sounds[number].play().catch(e => console.warn("Audio playback failed:", e));
         }
     }
+*/
 
     function applySelectedSection() {
         const config = TOURNAMENT_CONFIG[sectionSelector.value];
@@ -109,7 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
         allData[currentInputArrayIndex][currentInputCellIndex] = num;
         
         if (num !== null) {
-            playSound(num); // 音を鳴らす
+            //playSound(num); // 音を鳴らす
             if (currentInputCellIndex < TOTAL_CELLS_IN_ARRAY - 1) {
                 currentInputCellIndex++;
             } else if (currentInputArrayIndex < TOTAL_ARRAYS - 1) {
