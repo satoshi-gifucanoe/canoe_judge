@@ -3,35 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>カヌー区間ジャッジ</title>
+    <title>カヌー競技ジャッジシステム</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
     <h1>区間ジャッジ</h1>
 
-    <div id="file-setup">
-        <div id="config-panel" style="margin-bottom: 20px;">
-            <p style="margin-bottom: 5px; font-weight: bold;">1. 担当設定を選択してください</p>
-            <div style="display: flex; gap: 10px; justify-content: center;">
-                <select id="section-selector" style="font-size: 1.1rem; padding: 10px; width: 45%; border-radius: 8px; border: 2px solid #007bff;">
-                    <option value="1">区間 1</option>
-                    <option value="2">区間 2</option>
-                    <option value="3">区間 3</option>
-                    <option value="4">区間 4</option>
-                    <option value="5">区間 5</option>
-                </select>
-                <select id="round-selector" style="font-size: 1.1rem; padding: 10px; width: 45%; border-radius: 8px; border: 2px solid #28a745;">
-                    <option value="予選">予選</option>
-                    <option value="決勝">決勝</option>
-                </select>
-            </div>
-        </div>
+    <div id="setup-controls" style="display: flex; gap: 10px; margin-bottom: 5px;">
+        <select id="section-selector">
+            <option value="1">区間1 (G1-4)</option>
+            <option value="2">区間2 (G5-9)</option>
+            <option value="3">区間3 (G10-12)</option>
+            <option value="4">区間4 (G13-18)</option>
+            <option value="5">区間5 (G19-22)</option>
+        </select>
 
-        <p style="margin-bottom: 5px; font-weight: bold;">2. 選手リストを読み込んで開始</p>
-        <label for="bib-file-input" style="cursor: pointer; display: block; padding: 25px; border: 2px dashed #007bff; background: #f0f7ff; border-radius: 10px; margin: 0 10px;">
-            <strong>ここをタップして CSV / TXT を選択</strong>
-        </label>
-        <input type="file" id="bib-file-input" accept=".txt,.csv" style="display: none;">
+        <select id="round-selector">
+            <option value="予選">予選</option>
+            <option value="決勝">決勝</option>
+        </select>
+    </div>
+
+    <div id="file-setup">
+        <p>名簿を読み込んでいます...</p>
     </div>
 
     <div id="column-headers"></div>

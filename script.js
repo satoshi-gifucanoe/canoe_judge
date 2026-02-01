@@ -1,14 +1,13 @@
 document.addEventListener('DOMContentLoaded', () => {
     const TOURNAMENT_CONFIG = {
-        1: { startGate: 1,  numGates: 5 },
-        2: { startGate: 6,  numGates: 4 },
+        1: { startGate: 1,  numGates: 4 },
+        2: { startGate: 5,  numGates: 5 },
         3: { startGate: 10, numGates: 3 },
         4: { startGate: 13, numGates: 6 },
         5: { startGate: 19, numGates: 4 }
     };
 
     const arraysContainer = document.getElementById('arrays-container');
-    const fileInput = document.getElementById('bib-file-input');
     const sectionSelector = document.getElementById('section-selector');
     const roundSelector = document.getElementById('round-selector');
     const prevArrayBtn = document.getElementById('prev-array-btn');
@@ -16,8 +15,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const prevCellBtn = document.getElementById('prev-cell-btn');
     const nextCellBtn = document.getElementById('next-cell-btn');
     const clearBtn = document.getElementById('clear-btn');
+    const fileSetupDiv = document.getElementById('file-setup');
 
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbxne3PWjx0xYaDk79B6poe8jrHsDUfqBkWPb3kUOn-QNiTaV4NL5mycvCqUN6xQiPim1g/exec"; 
+    // ★重要：ご自身の新しいGASウェブアプリURLに書き換えてください
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbzCBH8WFzwbCcdpuJn7vGT67teFo8_E6wp8XJf5XtHkiOZB05eU8vrikFmUTNI1n0x6cQ/exec"; 
 
     let GATE_START_NUMBER, NUM_GATES, TOTAL_CELLS_IN_ARRAY;
     let allData = [];
@@ -36,24 +37,34 @@ document.addEventListener('DOMContentLoaded', () => {
     function playSound(number) {
         if (number !== null && sounds[number]) {
             sounds[number].currentTime = 0;
-            sounds[number].play().catch(e => console.warn("Audio playback failed:", e));
+            sounds[number].play().catch(e => console.warn("Audio error:", e));
         }
     }
 
+    // セクション設定の適用
     function applySelectedSection() {
         const config = TOURNAMENT_CONFIG[sectionSelector.value];
         GATE_START_NUMBER = config.startGate;
         NUM_GATES = config.numGates;
         TOTAL_CELLS_IN_ARRAY = NUM_GATES + 2; 
         updateHeaders();
-        if (allData.length > 0) resetDataStructure(); 
+        if (allData.length > 0) {
+            // 名簿を保持したままデータ構造（列数）だけリセット
+            allData = allData.map(row => {
+                const newRow = Array(TOTAL_CELLS_IN_ARRAY).fill(null);
+                newRow[0] = row[0]; // Category
+                newRow[1] = row[1]; // Bib
+                return newRow;
+            });
+            currentInputArrayIndex = 0;
+            currentInputCellIndex = 2;
+            renderArrays();
+        }
     }
 
+    // ヘッダーの表示更新
     function updateHeaders() {
-        const section = sectionSelector.value;
-        const round = roundSelector.value;
-        document.querySelector('h1').textContent = `区間${section} ジャッジ - ${round}`;
-        
+        document.querySelector('h1').textContent = `区間${sectionSelector.value} ジャッジ - ${roundSelector.value}`;
         const headerContainer = document.getElementById('column-headers');
         headerContainer.innerHTML = '';
         const headerRow = document.createElement('div');
@@ -75,21 +86,42 @@ document.addEventListener('DOMContentLoaded', () => {
         headerContainer.appendChild(headerRow);
     }
 
-    function resetDataStructure() {
-        allData = allData.map(row => {
-            const newRow = Array(TOTAL_CELLS_IN_ARRAY).fill(null);
-            newRow[0] = row[0]; newRow[1] = row[1];
-            return newRow;
-        });
-        currentInputArrayIndex = 0;
-        currentInputCellIndex = 2;
-        renderArrays();
+    // ★スプレッドシートから名簿を取得する関数
+    async function loadBibListFromSheets() {
+        const round = roundSelector.value;
+        const fetchUrl = `${GAS_URL}?round=${encodeURIComponent(round)}`;
+        
+        try {
+            fileSetupDiv.style.display = 'block';
+            fileSetupDiv.innerHTML = `<p style="padding:20px;">${round}の名簿を読み込み中...</p>`;
+            
+            const response = await fetch(fetchUrl);
+            const list = await response.json(); 
+
+            if (!list || list.length === 0) {
+                fileSetupDiv.innerHTML = `<p style="padding:20px; color:red;">${round}シートに名簿がありません。<br>A列にカテゴリー、B列にBibを入力してください。</p>`;
+                return;
+            }
+
+            allData = list.map(item => {
+                const row = Array(TOTAL_CELLS_IN_ARRAY).fill(null);
+                row[0] = item[0]; // Category
+                row[1] = item[1]; // Bib
+                return row;
+            });
+
+            TOTAL_ARRAYS = allData.length;
+            fileSetupDiv.style.display = 'none'; // 読み込み完了したら消す
+            currentInputArrayIndex = 0;
+            currentInputCellIndex = 2;
+            renderArrays();
+        } catch (err) {
+            console.error("Fetch Error:", err);
+            fileSetupDiv.innerHTML = `<p style="padding:20px; color:red;">名簿の取得に失敗しました。<br>GASのデプロイURLを確認してください。</p>`;
+        }
     }
 
-    sectionSelector.addEventListener('change', applySelectedSection);
-    roundSelector.addEventListener('change', applySelectedSection);
-    applySelectedSection();
-
+    // スプレッドシートへデータを送信
     async function syncToGoogleSheets() {
         if (allData.length === 0) return;
         const payload = {
@@ -100,16 +132,20 @@ document.addEventListener('DOMContentLoaded', () => {
             data: allData
         };
         try {
-            await fetch(GAS_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+            await fetch(GAS_URL, { 
+                method: "POST", 
+                mode: "no-cors", 
+                headers: { "Content-Type": "text/plain" }, 
+                body: JSON.stringify(payload) 
+            });
         } catch (err) { console.error("Sync Error:", err); }
     }
 
     function inputData(num) {
         if (allData.length === 0) return;
         allData[currentInputArrayIndex][currentInputCellIndex] = num;
-        
         if (num !== null) {
-            playSound(num); // 音を鳴らす
+            playSound(num);
             if (currentInputCellIndex < TOTAL_CELLS_IN_ARRAY - 1) {
                 currentInputCellIndex++;
             } else if (currentInputArrayIndex < TOTAL_ARRAYS - 1) {
@@ -121,43 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
         syncToGoogleSheets();
     }
 
-    fileInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const lines = event.target.result.trim().split(/\r?\n/);
-            allData = lines.filter(l => l.trim() !== "").map(line => {
-                const cols = line.split(',').map(c => c.replace(/"/g, '').trim());
-                const row = Array(TOTAL_CELLS_IN_ARRAY).fill(null);
-                row[0] = cols.length >= 2 ? cols[0] : "-";
-                row[1] = cols.length >= 2 ? cols[1] : cols[0];
-                return row;
-            });
-            TOTAL_ARRAYS = allData.length;
-            document.getElementById('file-setup').style.display = 'none';
-            renderArrays();
-        };
-        reader.readAsText(file);
-    });
-
-    document.querySelectorAll('.number-btn').forEach(button => {
-        button.onclick = () => inputData(parseInt(button.dataset.value));
-    });
-    if (clearBtn) clearBtn.onclick = () => inputData(null);
-
-    // キーボード入力にも対応
-    window.addEventListener('keydown', (e) => {
-        if (allData.length === 0) return;
-        switch (e.key) {
-            case '0': inputData(0); break;
-            case '2': inputData(2); break;
-            case '5': inputData(50); break;
-            case 'Backspace':
-            case 'Delete': inputData(null); break;
-        }
-    });
-
+    // 描画処理
     function renderArrays() {
         if (allData.length === 0) return;
         arraysContainer.innerHTML = '';
@@ -170,54 +170,4 @@ document.addEventListener('DOMContentLoaded', () => {
             row.classList.add('array-row');
             for (let j = 0; j < TOTAL_CELLS_IN_ARRAY; j++) {
                 const cell = document.createElement('div');
-                cell.classList.add('cell');
-                
-                if (j === 0 || j === 1) {
-                    cell.textContent = allData[i][j];
-                    cell.classList.add('array-number-cell');
-                    if (j === 0) {
-                        const cat = String(allData[i][j]).toUpperCase();
-                        if (cat.includes('MK1')) cell.classList.add('cat-mk1');
-                        else if (cat.includes('WK1')) cell.classList.add('cat-wk1');
-                        else if (cat.includes('MC1')) cell.classList.add('cat-mc1');
-                        else if (cat.includes('WC1')) cell.classList.add('cat-wc1');
-                    }
-                } else {
-                    cell.textContent = allData[i][j] !== null ? allData[i][j] : '';
-                    if (allData[i][j] === 2) cell.classList.add('is-two');
-                    if (allData[i][j] === 50) cell.classList.add('is-fifty');
-                    if (i === currentInputArrayIndex && j === currentInputCellIndex) cell.classList.add('cell-highlight');
-                    cell.onclick = () => { currentInputArrayIndex = i; currentInputCellIndex = j; renderArrays(); };
-                }
-                row.appendChild(cell);
-            }
-            arraysContainer.appendChild(row);
-        }
-        updateButtonStates();
-    }
-
-    function updateButtonStates() {
-        prevArrayBtn.disabled = currentInputArrayIndex === 0;
-        nextArrayBtn.disabled = currentInputArrayIndex === TOTAL_ARRAYS - 1;
-        prevCellBtn.disabled = currentInputArrayIndex === 0 && currentInputCellIndex === 2;
-        nextCellBtn.disabled = currentInputArrayIndex === TOTAL_ARRAYS - 1 && currentInputCellIndex === TOTAL_CELLS_IN_ARRAY - 1;
-    }
-
-    function moveFocus(direction) {
-        if (direction === 'prevArray' && currentInputArrayIndex > 0) currentInputArrayIndex--;
-        else if (direction === 'nextArray' && currentInputArrayIndex < TOTAL_ARRAYS - 1) currentInputArrayIndex++;
-        else if (direction === 'prevCell') {
-            if (currentInputCellIndex > 2) currentInputCellIndex--;
-            else if (currentInputArrayIndex > 0) { currentInputArrayIndex--; currentInputCellIndex = TOTAL_CELLS_IN_ARRAY - 1; }
-        } else if (direction === 'nextCell') {
-            if (currentInputCellIndex < TOTAL_CELLS_IN_ARRAY - 1) currentInputCellIndex++;
-            else if (currentInputArrayIndex < TOTAL_ARRAYS - 1) { currentInputArrayIndex++; currentInputCellIndex = 2; }
-        }
-        renderArrays();
-    }
-
-    prevArrayBtn.onclick = () => moveFocus('prevArray');
-    nextArrayBtn.onclick = () => moveFocus('nextArray');
-    prevCellBtn.onclick = () => moveFocus('prevCell');
-    nextCellBtn.onclick = () => moveFocus('nextCell');
-});
+                cell.classList.
