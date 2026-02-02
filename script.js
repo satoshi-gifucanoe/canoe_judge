@@ -7,7 +7,6 @@ document.addEventListener('DOMContentLoaded', () => {
         5: { startGate: 19, numGates: 4 }
     };
 
-    // ★重要：新しいデプロイURLをここに貼り付けてください
     const GAS_URL = "https://script.google.com/macros/s/AKfycbzVqQ5E8_WoM4LCR5o_PwqzfLl30KVgfEvNWuUcTZldeOaAhZNo1TE9mJhPsXBm_6EQqw/exec"; 
 
     const arraysContainer = document.getElementById('arrays-container');
@@ -30,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentInputCellIndex = 2; 
     const NUM_ARRAYS_TO_DISPLAY = 3;
 
+    // 音声ファイルの読み込み（パスに問題がないか確認用）
     const sounds = {
         0: new Audio('sound_0.mp3'),
         2: new Audio('sound_2.mp3'),
@@ -38,16 +38,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function playSound(num) {
         if (num !== null && sounds[num]) {
-            // 再生位置を最初に戻す
+            sounds[num].pause();
             sounds[num].currentTime = 0;
-            
-            // 再生を実行
             const playPromise = sounds[num].play();
-
             if (playPromise !== undefined) {
                 playPromise.catch(error => {
-                    // ここでエラーが出た場合、コンソールで確認できます
-                    console.error("音声の再生に失敗しました:", error);
+                    console.warn("再生ブロック: 画面を一度タップしてください", error);
                 });
             }
         }
@@ -92,28 +88,20 @@ document.addEventListener('DOMContentLoaded', () => {
         headerContainer.appendChild(headerRow);
     }
 
-    // 名簿取得処理
     async function loadBibListFromSheets() {
         const round = roundSelector.value;
         const fetchUrl = `${GAS_URL}?round=${encodeURIComponent(round)}`;
-        
         try {
             loadRosterBtn.disabled = true;
             loadingMessage.textContent = `${round}の名簿を取得中...`;
-            
             const response = await fetch(fetchUrl);
             const list = await response.json(); 
-
-            if (!list || list.length === 0 || list.error) {
-                throw new Error(list.error || "空のデータ");
-            }
-
+            if (!list || list.length === 0 || list.error) throw new Error(list.error || "空のデータ");
             allData = list.map(item => {
                 const row = Array(TOTAL_CELLS_IN_ARRAY).fill(null);
                 row[0] = item[0]; row[1] = item[1];
                 return row;
             });
-
             TOTAL_ARRAYS = allData.length;
             fileSetupDiv.style.display = 'none';
             currentInputArrayIndex = 0;
@@ -121,7 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderArrays();
         } catch (err) {
             console.error(err);
-            loadingMessage.innerHTML = `<span style="color:red;">取得失敗。GAS設定とシート名「${round}」を確認してください。</span>`;
+            loadingMessage.innerHTML = `<span style="color:red;">取得失敗</span>`;
             loadRosterBtn.disabled = false;
         }
     }
@@ -187,7 +175,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (allData[i][j] === 2) cell.classList.add('is-two');
                     if (allData[i][j] === 50) cell.classList.add('is-fifty');
                     if (i === currentInputArrayIndex && j === currentInputCellIndex) cell.classList.add('cell-highlight');
-                    cell.onclick = () => { currentInputArrayIndex = i; currentInputCellIndex = j; renderArrays(); };
+                    
+                    // addEventListenerを使用してCSPエラーを回避
+                    cell.addEventListener('click', () => {
+                        currentInputArrayIndex = i;
+                        currentInputCellIndex = j;
+                        renderArrays();
+                    });
                 }
                 row.appendChild(cell);
             }
@@ -210,15 +204,21 @@ document.addEventListener('DOMContentLoaded', () => {
         renderArrays();
     }
 
-    sectionSelector.onchange = applySelectedSection;
-    roundSelector.onchange = () => { applySelectedSection(); fileSetupDiv.style.display = 'block'; arraysContainer.innerHTML = ''; };
-    loadRosterBtn.onclick = loadBibListFromSheets;
-    document.querySelectorAll('.number-btn').forEach(btn => btn.onclick = () => inputData(parseInt(btn.dataset.value)));
-    clearBtn.onclick = () => inputData(null);
-    prevArrayBtn.onclick = () => moveFocus('prevArray');
-    nextArrayBtn.onclick = () => moveFocus('nextArray');
-    prevCellBtn.onclick = () => moveFocus('prevCell');
-    nextCellBtn.onclick = () => moveFocus('nextCell');
+    sectionSelector.addEventListener('change', applySelectedSection);
+    roundSelector.addEventListener('change', () => { 
+        applySelectedSection(); 
+        fileSetupDiv.style.display = 'block'; 
+        arraysContainer.innerHTML = ''; 
+    });
+    loadRosterBtn.addEventListener('click', loadBibListFromSheets);
+    document.querySelectorAll('.number-btn').forEach(btn => {
+        btn.addEventListener('click', () => inputData(parseInt(btn.dataset.value)));
+    });
+    clearBtn.addEventListener('click', () => inputData(null));
+    prevArrayBtn.addEventListener('click', () => moveFocus('prevArray'));
+    nextArrayBtn.addEventListener('click', () => moveFocus('nextArray'));
+    prevCellBtn.addEventListener('click', () => moveFocus('prevCell'));
+    nextCellBtn.addEventListener('click', () => moveFocus('nextCell'));
 
     applySelectedSection();
 });
