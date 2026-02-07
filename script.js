@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
         5: { startGate: 19, numGates: 4 }
     };
 
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbzVqQ5E8_WoM4LCR5o_PwqzfLl30KVgfEvNWuUcTZldeOaAhZNo1TE9mJhPsXBm_6EQqw/exec"; 
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbwuRM0A1XT7wnV2vJyBLw75ttmofXXLtLQUbs4pSLjBEyle8BE4vWaQ9vtV244KZR0Y/exec"; 
 
     // --- HTMLから現在のセクション番号を取得 ---
     const currentSection = document.body.getAttribute('data-section') || "1";
