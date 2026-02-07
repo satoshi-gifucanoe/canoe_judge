@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>カヌー競技ジャッジシステム</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body data-section="2">
+    <h1 id="main-title">区間ジャッジ</h1>
+
+    <!-- <div id="setup-controls">
+        <div id="round-buttons-container">
+            <button type="button" class="round-toggle-btn active" data-round="予選">予選</button>
+            <button type="button" class="round-toggle-btn" data-round="決勝">決勝</button>
+        </div>
+    </div>
+
+    <div id="file-setup" class="setup-box">
+        <p id="loading-message">設定を確認して名簿を同期してください</p>
+        <button id="load-roster-btn">名簿を同期する</button>
+    </div> -->
+
+    <div id="file-setup" class="setup-box">
+        <p id="loading-message">ラウンドを選択して名簿を同期してください</p>
+        <div id="round-buttons-container">
+            <button type="button" class="round-toggle-btn" data-round="予選">予選</button>
+            <button type="button" class="round-toggle-btn" data-round="決勝">決勝</button>
+        </div>
+    </div>
+
+
+    <div id="column-headers"></div>
+    <div id="arrays-container"></div>
+
+    <div id="navigation-buttons">
+        <button id="prev-array-btn">↑</button>
+        <button id="prev-cell-btn">←</button>
+        <button id="next-cell-btn">→</button>
+        <button id="next-array-btn">↓</button>
+    </div>
+
+    <div id="number-buttons">
+        <button class="number-btn" data-value="0">0</button>
+        <button class="number-btn" data-value="2">2</button>
+        <div class="split-btn-container">
+            <button class="number-btn" data-value="50">50</button>
+            <button id="clear-btn">X</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
